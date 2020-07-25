@@ -2,14 +2,30 @@ import 'dart:async';
 import 'dart:html';
 import 'package:bakecode/src/logger.dart';
 import 'package:bakecode/src/quantities.dart';
-import 'package:bakecode/src/support.dart';
 import 'package:equatable/equatable.dart';
-import 'package:logger/logger.dart';
 import 'package:meta/meta.dart';
 
-// class Global {
-//   static final Map<Recipe, RecipeBuildStackContext> recipeBuildStack = Map<Recipe, RecipeStackContext>();
-// }
+enum ActionState {
+  CompletedSuccesfully,
+  CompletedWithError,
+  CouldNotComplete,
+}
+
+abstract class Action extends Equatable {
+  String get name;
+
+  @override
+  List<Object> get props => [name];
+
+  String get description => '';
+
+  @override
+  String toString() => 'Action[$name]';
+}
+
+abstract class Tool {}
+
+class RecipeBuildOwner {}
 
 abstract class RecipeBuildTool {
   String get name;
@@ -19,7 +35,7 @@ abstract class RecipeBuildTool {
 
 /// [Chef] is responsible for managing and handling the build pipeline of a
 /// recipe.
-class Chef {
+class Chef extends Useable<Chef> {
   /// Initializes the chef
   void init() {}
 

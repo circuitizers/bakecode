@@ -1,8 +1,8 @@
 // recipe prototype
 
-abstract class RitEspressoCoffee extends Recipe {
+class RitEspressoCoffee extends Beverage {
   @override
-  Future<Null> build(BuildContext context) {
+  Future build(BuildContext context) {
     context.chef
       ..dispense();
       ..stir();
