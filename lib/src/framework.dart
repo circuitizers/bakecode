@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:html';
 import 'package:bakecode/src/action_state.dart';
 import 'package:bakecode/src/logger.dart';
 import 'package:bakecode/src/quantities.dart';
@@ -20,38 +19,23 @@ class ToolLocator {
         assert(toolID != null && toolID != '');
 }
 
-abstract class Action extends Equatable {
-  String get name;
-
-  String get description => '';
-
-  Stream<ActionState> execute(ToolLocator toolLocator);
-
-  @override
-  List<Object> get props => [name];
-
-  @override
-  String toString() => 'Action[$name]';
-}
-
-class Dispense extends Action {
-  @override
-  String get name => 'Dispense';
-
-  @override
-  Stream<ActionState> execute(ToolLocator toolLocator) {}
-}
-
 abstract class Tool extends Equatable {
   String get name;
-
-  Stream<ActionState> dispense() {}
 
   @override
   List<Object> get props => [name];
 
   @override
   String toString() => 'Tool[$name]';
+}
+
+class Dispenser extends Tool {
+  @override
+  String get name => 'Dispenser';
+
+  Stream<ActionState> dispense() async* {
+    /// ... perform hardware mqtt stuffs here..
+  }
 }
 
 class RecipeBuildOwner {}
@@ -64,7 +48,7 @@ abstract class RecipeBuildTool {
 
 /// [Chef] is responsible for managing and handling the build pipeline of a
 /// recipe.
-class Chef extends Useable<Chef> {
+class Chef {
   /// Initializes the chef
   void init() {}
 
@@ -72,7 +56,7 @@ class Chef extends Useable<Chef> {
       make(recipe, servings: servings);
 }
 
-abstract class RecipeBuildContext extends Loggable {
+abstract class BuildContext extends Loggable {
   Recipe recipe;
   Chef chef;
 
@@ -80,7 +64,7 @@ abstract class RecipeBuildContext extends Loggable {
   String get label => 'BuildContext (${recipe.name})';
 }
 
-class FoodBuildContext extends RecipeBuildContext {
+class FoodBuildContext extends BuildContext {
   @override
   Recipe recipe;
 
@@ -122,7 +106,7 @@ abstract class Recipe extends Equatable with Loggable {
   List<Object> get props => [name, version];
 
   bool get canBuild => true;
-  Future build(RecipeBuildContext context);
+  Future build(BuildContext context);
 }
 
 void make(Recipe recipe, [Servings servings]) {
@@ -131,95 +115,8 @@ void make(Recipe recipe, [Servings servings]) {
   if (recipe.canBuild) {
     // reserve tools to RecipeBuildContext
 
-    RecipeBuildContext buildContext = FoodBuildContext();
+    BuildContext buildContext = FoodBuildContext();
 
     recipe.build(buildContext);
   }
 }
-
-// class RecipeBuilder {}
-
-// class RecipeBuildContext {
-//   DateTime initializedOn;
-//   DateTime preparedOn;
-//   DateTime expiresOn;
-//   RecipeBuilder builder;
-// }
-
-// abstract class Action<T> {}
-
-// abstract class Tool {
-//   final String toolName;
-//   final String path;
-
-//   const Tool({this.toolName, this.path});
-// }
-
-// /// [RecipeVersion] holds the recipe version
-// @immutable
-// class RecipeVersion {
-//   final DateTime publishedOn;
-
-//   const RecipeVersion({@required this.publishedOn})
-//       : assert(publishedOn != null);
-
-//   @override
-//   String toString() => publishedOn.toIso8601String();
-// }
-
-// abstract class Recipe extends Equatable {
-//   final String name;
-//   final RecipeVersion version;
-//   final Servings servings;
-//   final Url url;
-//   final BakecodeLogger logger;
-
-//   Recipe({
-//     @required this.name,
-//     @required this.version,
-//     @required this.servings,
-//     this.url,
-//   })  : assert(name != null),
-//         assert(version != null),
-//         assert(servings != null),
-//         logger = BakecodeLogger("Recipe '$name'");
-
-//   @override
-//   List<Object> get props => [name, version, url];
-
-//   @mustCallSuper
-//   Future init() {
-//     logger.v('started init()');
-//   }
-
-//   @mustCallSuper
-//   Future build(RecipeBuilder builder) {
-//     logger.v('started build() w/ builder: ${builder.hashCode}');
-//   }
-
-//   Future dispatch() {
-//     logger.v('started dispatch()');
-//   }
-
-//   @mustCallSuper
-//   Future dispose() {
-//     logger.v('started dispose()');
-//   }
-// }
-
-// void make(Recipe recipe, Servings servings) {
-//   final log = BakecodeLogger('make ${recipe.name}');
-//   runZoned(
-//     () {
-//       recipe.init().then(
-//             (result) => recipe.build(builder).then(
-//                   (result) => recipe.dispatch().then(
-//                         (result) => recipe.dispose(),
-//                       ),
-//                 ),
-//           );
-//     },
-//     onError: (error, stackTrace) =>
-//         log.e('runZoned::onError', error, stackTrace),
-//   );
-// }
