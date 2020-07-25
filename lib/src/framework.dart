@@ -19,18 +19,18 @@ class ToolLocator {
         assert(toolID != null && toolID != '');
 }
 
-enum ActionState {
-  CompletedSuccesfully,
-  CompletedWithError,
-  CouldNotComplete,
-}
+// enum ActionState {
+//   CompletedSuccesfully,
+//   CompletedWithError,
+//   CouldNotComplete,
+// }
 
 abstract class Action extends Equatable {
   String get name;
 
   String get description => '';
 
-  Stream<ActionState> execute();
+  Stream<ActionState> execute(ToolLocator toolLocator);
 
   @override
   List<Object> get props => [name];
@@ -44,7 +44,7 @@ class Dispense extends Action {
   String get name => 'Dispense';
 
   @override
-  Stream<ActionState> execute() async* {}
+  Stream<ActionState> execute(ToolLocator toolLocator) {}
 }
 
 abstract class Tool extends Equatable {
