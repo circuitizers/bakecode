@@ -22,7 +22,7 @@ class CustomLogPrinter extends LogPrinter {
 
 class Loggable {
   Logger log;
-  void init(dynamic classname) {
+  void enableLoggingFor(dynamic classname) {
     log = Logger(
       level: Level.verbose,
       filter: CustomLogFilter(),
@@ -35,7 +35,7 @@ class Recipe extends Loggable {}
 
 class CoffeCup extends Recipe {
   CoffeCup() {
-    init(this);
+    enableLoggingFor(this);
   }
 }
 
