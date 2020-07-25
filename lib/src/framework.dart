@@ -106,13 +106,11 @@ abstract class Recipe extends Equatable with Loggable {
   final String name;
   final RecipeVersion version;
   Servings servings;
-  final Url url;
 
   Recipe({
     @required this.name,
     @required this.version,
     @required this.servings,
-    this.url,
   })  : assert(name != null),
         assert(version != null),
         assert(servings != null);
@@ -121,7 +119,7 @@ abstract class Recipe extends Equatable with Loggable {
   String get label => 'Recipe $name';
 
   @override
-  List<Object> get props => [name, version, url];
+  List<Object> get props => [name, version];
 
   bool get canBuild => true;
   Future build(RecipeBuildContext context);
