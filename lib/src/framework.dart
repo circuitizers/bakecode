@@ -5,6 +5,20 @@ import 'package:bakecode/src/quantities.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
+@immutable
+class ToolLocator {
+  final String toolName;
+  final String toolID;
+
+  String get topic => '$toolName/$toolID';
+
+  const ToolLocator({
+    @required this.toolName,
+    @required this.toolID,
+  })  : assert(toolName != null),
+        assert(toolID != null && toolID != '');
+}
+
 enum ActionState {
   CompletedSuccesfully,
   CompletedWithError,
@@ -14,16 +28,38 @@ enum ActionState {
 abstract class Action extends Equatable {
   String get name;
 
+  String get description => '';
+
+  Stream<ActionState> execute();
+
   @override
   List<Object> get props => [name];
-
-  String get description => '';
 
   @override
   String toString() => 'Action[$name]';
 }
 
-abstract class Tool {}
+class Dispense extends Action {
+  @override
+  String get name => 'Dispense';
+
+  @override
+  Stream<ActionState> execute() async* {}
+}
+
+abstract class Tool extends Equatable {
+  String get name;
+
+  Stream<ActionState> dispense() {
+    yield ActionState.CouldNotComplete;
+  }
+
+  @override
+  List<Object> get props => [name];
+
+  @override
+  String toString() => 'Tool[$name]';
+}
 
 class RecipeBuildOwner {}
 
