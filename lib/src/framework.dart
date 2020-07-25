@@ -22,6 +22,9 @@ abstract class RecipeBuildTool {
 class Chef {
   /// Initializes the chef
   void init() {}
+
+  Future make(Recipe recipe, {Servings servings}) =>
+      make(recipe, servings: servings);
 }
 
 abstract class RecipeBuildContext extends Loggable {
@@ -76,15 +79,7 @@ abstract class Recipe extends Equatable with Loggable {
   List<Object> get props => [name, version, url];
 
   bool get canBuild => true;
-
-  @mustCallSuper
-  Future build(RecipeBuildContext context) {
-    log(Level.verbose, 'building...');
-
-    using<Chef>(context.chef, perform: (chef) {
-      chef.init();
-    });
-  }
+  Future build(RecipeBuildContext context);
 }
 
 void make(Recipe recipe, [Servings servings]) {
@@ -95,7 +90,7 @@ void make(Recipe recipe, [Servings servings]) {
 
     RecipeBuildContext buildContext = FoodBuildContext();
 
-    recipe.build(context)
+    recipe.build(buildContext);
   }
 }
 
