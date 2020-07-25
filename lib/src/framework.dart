@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:html';
+import 'package:bakecode/src/action_state.dart';
 import 'package:bakecode/src/logger.dart';
 import 'package:bakecode/src/quantities.dart';
 import 'package:equatable/equatable.dart';
@@ -18,12 +19,6 @@ class ToolLocator {
   })  : assert(toolName != null),
         assert(toolID != null && toolID != '');
 }
-
-// enum ActionState {
-//   CompletedSuccesfully,
-//   CompletedWithError,
-//   CouldNotComplete,
-// }
 
 abstract class Action extends Equatable {
   String get name;
@@ -50,9 +45,7 @@ class Dispense extends Action {
 abstract class Tool extends Equatable {
   String get name;
 
-  Stream<ActionState> dispense() {
-    yield ActionState.CouldNotComplete;
-  }
+  Stream<ActionState> dispense() {}
 
   @override
   List<Object> get props => [name];
