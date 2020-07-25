@@ -33,10 +33,13 @@ class Loggable {
 
 class Recipe extends Loggable {}
 
-class CoffeCup extends Recipe {}
+class CoffeCup extends Recipe {
+  CoffeCup() {
+    init(this);
+  }
+}
 
 void main() {
   Recipe recipe = CoffeCup();
-  recipe.init(recipe);
   recipe.log.d('hi');
 }
