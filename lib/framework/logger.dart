@@ -23,6 +23,9 @@ class CustomLogPrinter extends LogPrinter {
 
 class Loggable {
   Logger log;
+  Loggable() {
+    enableLoggingFor(this);
+  }
   void enableLoggingFor(dynamic classname) {
     log = Logger(
       level: Level.verbose,
@@ -34,11 +37,7 @@ class Loggable {
 
 class Recipe extends Loggable {}
 
-class CoffeCup extends Recipe {
-  CoffeCup() {
-    enableLoggingFor(this);
-  }
-}
+class CoffeCup extends Recipe {}
 
 void main() {
   Recipe recipe = CoffeCup();
