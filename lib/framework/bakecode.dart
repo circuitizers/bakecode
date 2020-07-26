@@ -2,47 +2,31 @@ import 'dart:async';
 import 'package:bakecode/framework/action_state.dart';
 import 'package:bakecode/framework/logger.dart';
 import 'package:bakecode/framework/quantities.dart';
+import 'package:bakecode/framework/service.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
-/// [ServicePath] identifies evrery bakecode services in MQTT protocol.
-@immutable
-class ServicePath extends Equatable {
-  /// [levels] contains the level names to this service.
-  final List<String> levels;
+/// Entry point of the BakeCode Runtime
+class _BakeCodeRuntime {
+  /// Private Constructor for making runtime instance singleton.
+  const _BakeCodeRuntime._();
 
-  /// [path] gives the actual path to this service.
-  String get path => levels.join('/');
+  /// Provides the singleton instance of the BakeCode Runtime.
+  static const _BakeCodeRuntime instance = _BakeCodeRuntime._();
 
-  /// Creates a [ServicePath] instance by providing the level names as List.
-  /// The first item in [levels] should contain the most-parent level name, and
-  /// last item should contain the most-child level name.
-  const ServicePath(this.levels) : assert(levels != null);
+  factory _BakeCodeRuntime() => instance;
 
-  /// Returns a new [ServicePath] instance with a new child level appended to
-  /// this instance.
-  ServicePath child(String level) => ServicePath(levels..add(level));
-
-  @override
-  List<Object> get props => levels;
-
-  /// returns the actual path to this service as [String].
-  @override
-  String toString() => path;
-}
-
-class BakeCodeRuntime extends Equatable {
+  /// BakeCode Runtime service path.
   ServicePath get servicePath => ServicePath(['bakecode', hashCode.toString()]);
-
-  @override
-  List<Object> get props => [servicePath];
 }
 
-class Tool extends BakeCodeService {
-  @override
-  // TODO: implement servicePath
-  ServicePath get servicePath => ServicePath(['tools']);
+abstract class BakeCodeService {
+  static const _BakeCodeRuntime runtime = _BakeCodeRuntime.instance;
+
+  String get serviceName;
 }
+
+abstract class Tool {}
 
 class Dispenser extends Tool {
   @override

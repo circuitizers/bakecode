@@ -16,7 +16,7 @@ class CustomLogPrinter extends LogPrinter {
   List<String> log(LogEvent event) {
     var name = reflect(reflectee).reflectee.toString();
     return [
-      '[${DateFormat(DateFormat.HOUR24_MINUTE_SECOND).format(DateTime.now())}] Recipe of ${reflect(name).reflectee.toString().substring(13, name.length - 1)} | ${event.message}'
+      '[${DateFormat('').format(DateTime.now())}] Recipe of ${reflect(name).reflectee.toString().substring(13, name.length - 1)} | ${event.message}'
     ];
   }
 }

@@ -1,3 +1,4 @@
+import 'package:bakecode/framework/bakecode.dart';
 import 'package:meta/meta.dart';
 
 @immutable
