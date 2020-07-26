@@ -5,31 +5,50 @@ import 'package:bakecode/framework/quantities.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
+/// [ServicePath] identifies all bakecode service in MQTT protocol.
 @immutable
 class ServicePath extends Equatable {
+  /// [rootLevel] stores the root level name.
   static const rootLevel = 'bakecode';
 
+  /// [levels] contains the level names to this service.
   final List<String> levels;
 
+  /// [path] gives the actual path to this bakecode service.
   String get path => '$rootLevel/${levels.join('/')}';
 
+  /// Creates a [ServicePath] instance by providing the level names as List.
+  /// The first item in [levels] should contain the most-parent level name, and
+  /// last item should contain the most-child level name.
   const ServicePath(this.levels) : assert(levels != null);
+
+  /// Returns a new [ServicePath] instance with a new child level appended to
+  /// this instance.
+  ServicePath child(String level) => ServicePath(levels..add(level));
 
   @override
   List<Object> get props => levels;
 
+  /// returns the actual path to this bakecode service as [String].
   @override
   String toString() => path;
 }
 
-abstract class Tool extends Equatable {
-  ServicePath get path;
+abstract class BakeCodeService extends Equatable {
+  ServicePath get servicePath;
 
   @override
-  List<Object> get props => [path];
+  List<Object> get props => [servicePath];
 
   @override
-  String toString() => '${idnetity.toolName} (Tool)';
+  // TODO: implement stringify
+  bool get stringify => super.stringify;
+}
+
+class Tool extends BakeCodeService {
+  @override
+  // TODO: implement servicePath
+  ServicePath get servicePath => ServicePath(['tools']);
 }
 
 class Dispenser extends Tool {
