@@ -1,32 +1,35 @@
 import 'dart:async';
-import 'package:bakecode/src/action_state.dart';
-import 'package:bakecode/src/logger.dart';
-import 'package:bakecode/src/quantities.dart';
+import 'package:bakecode/framework/action_state.dart';
+import 'package:bakecode/framework/logger.dart';
+import 'package:bakecode/framework/quantities.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
 @immutable
-class ToolLocator {
-  final String toolName;
-  final String toolID;
+class ServicePath extends Equatable {
+  static const rootLevel = 'bakecode';
 
-  String get topic => '$toolName/$toolID';
+  final List<String> levels;
 
-  const ToolLocator({
-    @required this.toolName,
-    @required this.toolID,
-  })  : assert(toolName != null),
-        assert(toolID != null && toolID != '');
+  String get path => '$rootLevel/${levels.join('/')}';
+
+  const ServicePath(this.levels) : assert(levels != null);
+
+  @override
+  List<Object> get props => levels;
+
+  @override
+  String toString() => path;
 }
 
 abstract class Tool extends Equatable {
-  String get name;
+  ServicePath get path;
 
   @override
-  List<Object> get props => [name];
+  List<Object> get props => [path];
 
   @override
-  String toString() => 'Tool[$name]';
+  String toString() => '${idnetity.toolName} (Tool)';
 }
 
 class Dispenser extends Tool {
