@@ -23,13 +23,10 @@ class CustomLogPrinter extends LogPrinter {
 class Loggable {
   Logger log;
   Loggable() {
-    enableLoggingFor(this);
-  }
-  void enableLoggingFor(dynamic classname) {
     log = Logger(
       level: Level.verbose,
       filter: CustomLogFilter(),
-      printer: CustomLogPrinter(classname),
+      printer: CustomLogPrinter(this),
     );
   }
 }
