@@ -5,17 +5,14 @@ import 'package:bakecode/framework/quantities.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
-/// [ServicePath] identifies all bakecode service in MQTT protocol.
+/// [ServicePath] identifies evrery bakecode services in MQTT protocol.
 @immutable
 class ServicePath extends Equatable {
-  /// [rootLevel] stores the root level name.
-  static const rootLevel = 'bakecode';
-
   /// [levels] contains the level names to this service.
   final List<String> levels;
 
-  /// [path] gives the actual path to this bakecode service.
-  String get path => '$rootLevel/${levels.join('/')}';
+  /// [path] gives the actual path to this service.
+  String get path => levels.join('/');
 
   /// Creates a [ServicePath] instance by providing the level names as List.
   /// The first item in [levels] should contain the most-parent level name, and
@@ -29,20 +26,16 @@ class ServicePath extends Equatable {
   @override
   List<Object> get props => levels;
 
-  /// returns the actual path to this bakecode service as [String].
+  /// returns the actual path to this service as [String].
   @override
   String toString() => path;
 }
 
-abstract class BakeCodeService extends Equatable {
-  ServicePath get servicePath;
+class BakeCodeRuntime extends Equatable {
+  ServicePath get servicePath => ServicePath(['bakecode', hashCode.toString()]);
 
   @override
   List<Object> get props => [servicePath];
-
-  @override
-  // TODO: implement stringify
-  bool get stringify => super.stringify;
 }
 
 class Tool extends BakeCodeService {
