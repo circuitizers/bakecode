@@ -1,5 +1,6 @@
 import 'dart:mirrors';
 
+import 'package:intl/intl.dart';
 import 'package:logger/logger.dart';
 
 class CustomLogFilter extends LogFilter {
@@ -8,14 +9,14 @@ class CustomLogFilter extends LogFilter {
 }
 
 class CustomLogPrinter extends LogPrinter {
-  final dynamic classname;
-  CustomLogPrinter(this.classname);
+  final dynamic reflectee;
+  CustomLogPrinter(this.reflectee);
 
   @override
   List<String> log(LogEvent event) {
-    var name = reflect(classname).reflectee.toString();
+    var name = reflect(reflectee).reflectee.toString();
     return [
-      '[${DateTime.now().toString().substring(0, 19)}] Recipe of ${reflect(name).reflectee.toString().substring(13, name.length - 1)} | ${event.message}'
+      '[${DateFormat(DateFormat.HOUR24_MINUTE_SECOND)}] Recipe of ${reflect(name).reflectee.toString().substring(13, name.length - 1)} | ${event.message}'
     ];
   }
 }
