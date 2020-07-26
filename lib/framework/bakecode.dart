@@ -17,23 +17,33 @@ class _BakeCodeRuntime {
   factory _BakeCodeRuntime() => instance;
 
   /// BakeCode Runtime service path.
-  ServicePath get servicePath => ServicePath(['bakecode', hashCode.toString()]);
+  ServicePath get servicePath => ServicePath(['bakecode-$hashCode']);
 }
 
-abstract class BakeCodeService {
+abstract class BakeCodeService extends Equatable {
   static const _BakeCodeRuntime runtime = _BakeCodeRuntime.instance;
 
-  String get serviceName;
+  ServicePath get servicePath => runtime.servicePath;
+
+  @override
+  List<Object> get props => [servicePath];
 }
 
-abstract class Tool {}
+abstract class Tool extends BakeCodeService {
+  @override
+  ServicePath get servicePath => super.servicePath.child('tools');
+}
 
 class Dispenser extends Tool {
   @override
-  String get name => 'Dispenser';
+  ServicePath get servicePath => super.servicePath.child('dispenser');
 
   Stream<ActionState> dispense() async* {
     /// ... perform hardware mqtt stuffs here..
+  }
+
+  Dispenser() {
+    print(servicePath);
   }
 }
 
@@ -85,7 +95,7 @@ class RecipeVersion {
       : assert(publishedOn != null);
 }
 
-abstract class Recipe extends Equatable with Loggable {
+abstract class Recipe extends Equatable {
   final String name;
   final RecipeVersion version;
   Servings servings;
