@@ -7,31 +7,60 @@ import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
 /// Entry point of the BakeCode Runtime
-class _BakeCodeRuntime {
+class BakeCodeRuntime {
   /// Private Constructor for making runtime instance singleton.
-  const _BakeCodeRuntime._();
+  const BakeCodeRuntime._();
 
   /// Provides the singleton instance of the BakeCode Runtime.
-  static const _BakeCodeRuntime instance = _BakeCodeRuntime._();
+  static const BakeCodeRuntime instance = BakeCodeRuntime._();
 
-  factory _BakeCodeRuntime() => instance;
+  factory BakeCodeRuntime() => instance;
 
   /// BakeCode Runtime service path.
   ServicePath get servicePath => ServicePath(['bakecode-$hashCode']);
 }
 
+/// Provides an abstract layer for implementing BakeCode compatible services.
 abstract class BakeCodeService extends Equatable {
-  static const _BakeCodeRuntime runtime = _BakeCodeRuntime.instance;
+  /// Provides access to [BakeCodeRuntime] instance of the service.
+  static BakeCodeRuntime get runtime => BakeCodeRuntime.instance;
 
+  /// Allows implementers of [BakeCodeService] to implement const constructors.
+  const BakeCodeService();
+
+  /// [BakeCode Runtime] service path.
   ServicePath get servicePath => runtime.servicePath;
 
+  /// Equatable implementation.
   @override
   List<Object> get props => [servicePath];
 }
 
-abstract class Tool extends BakeCodeService {
+/// A zone of [BakeCodeService]s to contain and manage all the tools.
+class ToolsCollection extends BakeCodeService {
+  /// Contains all [Tool]s.
+  static final List<Tool> tools = [];
+
+  /// [ServicePath] to the [ToolsCollection]
   @override
   ServicePath get servicePath => super.servicePath.child('tools');
+}
+
+/// Provides an abstract layer for implementing a BakeCode compatible [Tool].
+abstract class Tool extends ToolsCollection {
+  final _name, _sessionID;
+
+  String get name => _name;
+  String get sessionID => _sessionID ?? hashCode;
+
+  @mustCallSuper
+  Tool({@required String name, String sessionID})
+      : assert(_name != null),
+        _name = name,
+        _sessionID = sessionID;
+
+  @override
+  ServicePath get servicePath => super.servicePath.child(name).child(sessionID);
 }
 
 class Dispenser extends Tool {
@@ -40,10 +69,6 @@ class Dispenser extends Tool {
 
   Stream<ActionState> dispense() async* {
     /// ... perform hardware mqtt stuffs here..
-  }
-
-  Dispenser() {
-    print(servicePath);
   }
 }
 

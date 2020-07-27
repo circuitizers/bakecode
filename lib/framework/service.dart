@@ -23,6 +23,7 @@ class ServicePath extends Equatable {
   /// returns [true] if this is the most-parent / root service, else [false].
   bool get isRoot => this == root;
 
+  /// returns how deep this [ServicePath] is.
   int get depth => levels.length;
 
   /// gives the current service name.
