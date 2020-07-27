@@ -1,8 +1,5 @@
-import 'package:bakecode/bakecode.dart';
-import 'package:test/test.dart';
+import 'package:bakecode/framework/bakecode.dart';
 
 void main() {
-  test('calculate', () {
-    expect(calculate(), 42);
-  });
+  Dispenser();
 }

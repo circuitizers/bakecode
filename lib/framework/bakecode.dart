@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:bakecode/framework/action_state.dart';
 import 'package:bakecode/framework/logger.dart';
+import 'package:bakecode/framework/mqtt.dart';
 import 'package:bakecode/framework/quantities.dart';
 import 'package:bakecode/framework/service.dart';
 import 'package:equatable/equatable.dart';
@@ -21,19 +22,19 @@ class BakeCodeRuntime {
 }
 
 /// Provides an abstract layer for implementing BakeCode compatible services.
-abstract class BakeCodeService extends Equatable {
+abstract class BakeCodeService {
   /// Provides access to [BakeCodeRuntime] instance of the service.
   static BakeCodeRuntime get runtime => BakeCodeRuntime.instance;
 
-  /// Allows implementers of [BakeCodeService] to implement const constructors.
-  const BakeCodeService();
+  MQTTService mqttService;
+
+  /// Constructor for [BakeCodeService] instance.
+  BakeCodeService() {
+    mqttService = MQTTService(servicePath);
+  }
 
   /// [BakeCode Runtime] service path.
   ServicePath get servicePath => runtime.servicePath;
-
-  /// Equatable implementation.
-  @override
-  List<Object> get props => [servicePath];
 }
 
 /// A zone of [BakeCodeService]s to contain and manage all the tools.
@@ -48,16 +49,15 @@ class ToolsCollection extends BakeCodeService {
 
 /// Provides an abstract layer for implementing a BakeCode compatible [Tool].
 abstract class Tool extends ToolsCollection {
-  final _name, _sessionID;
+  /// returns the name of the [Tool].
+  String get name;
 
-  String get name => _name;
-  String get sessionID => _sessionID ?? hashCode;
+  /// returns the current sessionID of the [Tool].
+  ///
+  /// sessionID is the [hashCode] of the [Tool] instance.
+  String get sessionID => hashCode.toString();
 
-  @mustCallSuper
-  Tool({@required String name, String sessionID})
-      : assert(_name != null),
-        _name = name,
-        _sessionID = sessionID;
+  void publish(String message) {}
 
   @override
   ServicePath get servicePath => super.servicePath.child(name).child(sessionID);
@@ -65,7 +65,7 @@ abstract class Tool extends ToolsCollection {
 
 class Dispenser extends Tool {
   @override
-  ServicePath get servicePath => super.servicePath.child('dispenser');
+  String get name => 'Dispenser';
 
   Stream<ActionState> dispense() async* {
     /// ... perform hardware mqtt stuffs here..
