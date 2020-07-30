@@ -1,10 +1,12 @@
 import 'package:yaml/yaml.dart';
 
+import 'actions.dart';
+
 /*
 
 apply plugin PLUGIN_NAME
 
-[turn    on                dispenser    CHOCOLATE]
+[turn    on                dispenser   CHOCOLATE]
 ACTION   ACTION_STATUS    OBJECT       OBJECT_ID
 */
 
@@ -15,16 +17,7 @@ class NoSuchStepDefined implements Exception {
   }
 }
 
-void foo() {
-  print('hi');
-}
-
 class YamlParser {
-  Map<String, void> actions = {
-    'turn': foo,
-    'stir': foo,
-  };
-
   bool parser(String yaml) {
     Map getFromYaml = loadYaml(yaml);
     for (var index = 1; index < getFromYaml.length + 1; index++) {
@@ -53,11 +46,9 @@ class YamlParser {
 
 void test_yaml() {
   var yaml = '''
-  apply plugin zak_shake
-
   step 1: turn on dispenser chocoklajdskldadaklda
-  step 2: turn2 on dispenser CHOCOLATE2
-  step 3: shakeNstir cup
+  step 2: turn on dispenser CHOCOLATE2
+  step 3: stir cup 0 0
   ''';
   var y = YamlParser();
   y.parser(yaml);
