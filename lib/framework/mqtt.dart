@@ -1,4 +1,3 @@
-import 'package:bakecode/framework/bakecode.dart';
 import 'package:bakecode/framework/service.dart';
 import 'package:equatable/equatable.dart';
 import 'package:mqtt_client/mqtt_client.dart';
