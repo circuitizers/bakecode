@@ -17,21 +17,17 @@ class BakeCodeRuntime {
 
   factory BakeCodeRuntime() => instance;
 
+  /// Provides access to the [MqttRuntime] instance.
+  static final mqtt = MqttRuntime.instance;
+
   /// BakeCode Runtime service path.
   ServicePath get servicePath => ServicePath(['bakecode-$hashCode']);
 }
 
 /// Provides an abstract layer for implementing BakeCode compatible services.
 abstract class BakeCodeService {
-  /// Provides access to [BakeCodeRuntime] instance of the service.
+  /// Provides access to the [BakeCodeRuntime] instance.
   static BakeCodeRuntime get runtime => BakeCodeRuntime.instance;
-
-  MQTTService mqttService;
-
-  /// Constructor for [BakeCodeService] instance.
-  BakeCodeService() {
-    mqttService = MQTTService(servicePath);
-  }
 
   /// [BakeCode Runtime] service path.
   ServicePath get servicePath => runtime.servicePath;
@@ -52,12 +48,18 @@ abstract class Tool extends ToolsCollection {
   /// returns the name of the [Tool].
   String get name;
 
+  Tool() {
+    ToolsCollection.tools.add(this);
+  }
+
   /// returns the current sessionID of the [Tool].
   ///
   /// sessionID is the [hashCode] of the [Tool] instance.
   String get sessionID => hashCode.toString();
 
-  void publish(String message) {}
+  // void publish(String message) {
+  //   mqttService.client.publishMessage(topic, qualityOfService, data)
+  // }
 
   @override
   ServicePath get servicePath => super.servicePath.child(name).child(sessionID);
