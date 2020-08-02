@@ -95,6 +95,7 @@ abstract class BuildContext extends Loggable {
   Chef chef;
 
   @override
+  // ignore: override_on_non_overriding_member
   String get label => 'BuildContext (${recipe.name})';
 }
 
@@ -134,6 +135,7 @@ abstract class Recipe extends Equatable {
         assert(servings != null);
 
   @override
+  // ignore: override_on_non_overriding_member
   String get label => 'Recipe $name';
 
   @override
