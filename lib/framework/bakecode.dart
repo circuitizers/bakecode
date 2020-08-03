@@ -32,21 +32,34 @@ abstract class BakeCodeService {
   /// [BakeCode Runtime] service path.
   ServicePath get servicePath => runtime.servicePath;
 
+  /// Default constructor of [BakeCodeService].
   BakeCodeService() {
-    runtime.mqtt.subscribe(servicePath.path);
-    runtime.mqtt.messageReceivedCallback = onMessageReceived;
+    /// Makes subscription for this service.
+    runtime.mqtt.addSubscription(
+      topic: servicePath.path,
+      onMessageCallbacks: [onMessage],
+    );
   }
 
-  void publish(String messsage) =>
-      runtime.mqtt.publish(servicePath.path, message);
+  /// Invoked when a new message is received on this service.
+  /// Implements a callback. Must call super from every sub service.
+  void onMessage(String message);
 
-  void onMessageReceived(String message);
+  /// Publish a message on this service.
+  void publish(String messsage) =>
+      runtime.mqtt.publishMessage(topic: servicePath.path, message: messsage);
 }
 
 /// A zone of [BakeCodeService]s to contain and manage all the tools.
 class ToolsCollection extends BakeCodeService {
   /// Contains all [Tool]s.
   static final List<Tool> tools = [];
+
+  @override
+  @mustCallSuper
+  void onMessage(String message) {
+    print('$message');
+  }
 
   /// [ServicePath] to the [ToolsCollection]
   @override
