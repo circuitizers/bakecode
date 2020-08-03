@@ -9,16 +9,16 @@ import 'package:meta/meta.dart';
 
 /// Entry point of the BakeCode Runtime
 class BakeCodeRuntime {
-  /// Private Constructor for making runtime instance singleton.
-  const BakeCodeRuntime._();
+  BakeCodeRuntime._();
 
-  /// Provides the singleton instance of the BakeCode Runtime.
-  static const BakeCodeRuntime instance = BakeCodeRuntime._();
+  /// Provides the singleton instance of the [BakeCodeRuntime].
+  static BakeCodeRuntime instance = BakeCodeRuntime._();
 
+  /// returns the [BakeCodeRuntime] singleton instance upon constructing.
   factory BakeCodeRuntime() => instance;
 
   /// Provides access to the [MqttRuntime] instance.
-  static final mqtt = MqttRuntime.instance;
+  final mqtt = MqttRuntime.instance;
 
   /// BakeCode Runtime service path.
   ServicePath get servicePath => ServicePath(['bakecode-$hashCode']);
@@ -27,10 +27,20 @@ class BakeCodeRuntime {
 /// Provides an abstract layer for implementing BakeCode compatible services.
 abstract class BakeCodeService {
   /// Provides access to the [BakeCodeRuntime] instance.
-  static BakeCodeRuntime get runtime => BakeCodeRuntime.instance;
+  BakeCodeRuntime get runtime => BakeCodeRuntime.instance;
 
   /// [BakeCode Runtime] service path.
   ServicePath get servicePath => runtime.servicePath;
+
+  BakeCodeService() {
+    runtime.mqtt.subscribe(servicePath.path);
+    runtime.mqtt.messageReceivedCallback = onMessageReceived;
+  }
+
+  void publish(String messsage) =>
+      runtime.mqtt.publish(servicePath.path, message);
+
+  void onMessageReceived(String message);
 }
 
 /// A zone of [BakeCodeService]s to contain and manage all the tools.
