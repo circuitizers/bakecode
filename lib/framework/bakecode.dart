@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:bakecode/framework/action_state.dart';
 import 'package:bakecode/framework/logger.dart';
 import 'package:bakecode/framework/mqtt.dart';
 import 'package:bakecode/framework/quantities.dart';
@@ -7,14 +6,14 @@ import 'package:bakecode/framework/service.dart';
 import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
-/// Entry point of the BakeCode Runtime
+/// [BakeCodeRuntime] service singleton implementation.
 class BakeCodeRuntime {
   BakeCodeRuntime._();
 
   /// Provides the singleton instance of the [BakeCodeRuntime].
   static BakeCodeRuntime instance = BakeCodeRuntime._();
 
-  /// returns the [BakeCodeRuntime] singleton instance upon constructing.
+  /// returns the [BakeCodeRuntime] singleton instance.
   factory BakeCodeRuntime() => instance;
 
   /// Provides access to the [MqttRuntime] instance.
@@ -33,12 +32,9 @@ abstract class BakeCodeService {
   ServicePath get servicePath => runtime.servicePath;
 
   /// Default constructor of [BakeCodeService].
+  /// Subscribes and implements callbacks for using mqtt service.
   BakeCodeService() {
-    /// Makes subscription for this service.
-    runtime.mqtt.addSubscription(
-      topic: servicePath.path,
-      onMessageCallbacks: [onMessage],
-    );
+    runtime.mqtt.addSubscription(servicePath.path, onMessage: onMessage);
   }
 
   /// Invoked when a new message is received on this service.
@@ -51,15 +47,21 @@ abstract class BakeCodeService {
 }
 
 /// A zone of [BakeCodeService]s to contain and manage all the tools.
+@sealed
 class ToolsCollection extends BakeCodeService {
-  /// Contains all [Tool]s.
-  static final List<Tool> tools = [];
+  ToolsCollection._() : super();
+
+  /// Provides the singleton instance of [ToolsCollection].
+  static final ToolsCollection instance = ToolsCollection._();
+
+  /// returns the [ToolsCollection] singleton instance.
+  factory ToolsCollection() => instance;
+
+  /// Contains all [Tool]s available at runtime.
+  static final Map<String, List<Tool>> tools = {};
 
   @override
-  @mustCallSuper
-  void onMessage(String message) {
-    print('$message');
-  }
+  void onMessage(String message) {}
 
   /// [ServicePath] to the [ToolsCollection]
   @override
@@ -67,34 +69,26 @@ class ToolsCollection extends BakeCodeService {
 }
 
 /// Provides an abstract layer for implementing a BakeCode compatible [Tool].
-abstract class Tool extends ToolsCollection {
+abstract class Tool extends BakeCodeService {
   /// returns the name of the [Tool].
   String get name;
 
+  /// [Tool] default constructor adds [this] to [ToolsCollection.tools].
   Tool() {
-    ToolsCollection.tools.add(this);
+    ToolsCollection.tools[name].add(this);
   }
 
   /// returns the current sessionID of the [Tool].
   ///
-  /// sessionID is the [hashCode] of the [Tool] instance.
+  /// [sessionID] relies on the object's [hashCode].
+  /// Hence, [hashCode] should not be overriden by sub-classes, unless
+  /// safely handled.
   String get sessionID => hashCode.toString();
 
-  // void publish(String message) {
-  //   mqttService.client.publishMessage(topic, qualityOfService, data)
-  // }
-
+  /// [ServicePath] to this tool (tools/$name/$session)
   @override
-  ServicePath get servicePath => super.servicePath.child(name).child(sessionID);
-}
-
-class Dispenser extends Tool {
-  @override
-  String get name => 'Dispenser';
-
-  Stream<ActionState> dispense() async* {
-    /// ... perform hardware mqtt stuffs here..
-  }
+  ServicePath get servicePath =>
+      ToolsCollection().servicePath.child(name).child(sessionID);
 }
 
 class RecipeBuildOwner {}

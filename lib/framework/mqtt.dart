@@ -36,15 +36,13 @@ class MqttRuntime {
   static final Map<String, List<void Function(String message)>>
       subscriptionCallbacks = {};
 
-  /// Subscribes and binds the callback for onMessage for the particular topic.
-  void addSubscription({
-    @required String topic,
-    @required List<void Function(String message)> onMessageCallbacks,
-  }) {
-    /// Appends [onMessageCallbacks] to existing callback stack of the topic.
+  /// Subscribes and adds callback.
+  void addSubscription(String topic,
+      {@required void Function(String message) onMessage}) {
+    /// Appends [onMessageCallback] to callback stack of the topic.
     subscriptionCallbacks.containsKey(topic)
-        ? subscriptionCallbacks[topic].addAll(onMessageCallbacks)
-        : subscriptionCallbacks[topic] = onMessageCallbacks;
+        ? subscriptionCallbacks[topic].add(onMessage)
+        : subscriptionCallbacks[topic] = [onMessage];
 
     /// subscribe [client] to the [topic].
     client.subscribe(topic, _qos);
