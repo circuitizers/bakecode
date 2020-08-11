@@ -1,81 +1,89 @@
 import 'dart:async';
+import 'package:bakecode/framework/action_state.dart';
 import 'package:bakecode/framework/logger.dart';
 import 'package:bakecode/framework/mqtt.dart';
 import 'package:bakecode/framework/quantities.dart';
 import 'package:bakecode/framework/service.dart';
-import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
-/// [BakeCodeRuntime] service singleton implementation.
+/// [BakeCodeRuntime] singleton service.
 class BakeCodeRuntime {
   BakeCodeRuntime._();
 
-  /// Provides the singleton instance of the [BakeCodeRuntime].
+  /// [BakeCodeRuntime] singleton service instance.
   static BakeCodeRuntime instance = BakeCodeRuntime._();
 
-  /// returns the [BakeCodeRuntime] singleton instance.
-  factory BakeCodeRuntime() => instance;
-
-  /// Provides access to the [MqttRuntime] instance.
+  /// [MqttRuntime] service instance.
   final mqtt = MqttRuntime.instance;
 
-  /// BakeCode Runtime service path.
+  /// [BakeCodeRuntime]'s [ServicePath].
   ServicePath get servicePath => ServicePath(['bakecode-$hashCode']);
 }
 
-/// Provides an abstract layer for implementing BakeCode compatible services.
+/// [BakeCodeSerice] abstract layer.
 abstract class BakeCodeService {
-  /// Provides access to the [BakeCodeRuntime] instance.
+  /// [BakeCodeRuntime] service instance.
   BakeCodeRuntime get runtime => BakeCodeRuntime.instance;
 
-  /// [BakeCode Runtime] service path.
+  /// [ServicePath] of [this] [BakeCodeService].
   ServicePath get servicePath => runtime.servicePath;
 
-  /// Default constructor of [BakeCodeService].
-  /// Subscribes and implements callbacks for using mqtt service.
   BakeCodeService() {
+    /// Subscribes and implements callbacks for using mqtt service.
     runtime.mqtt.addSubscription(servicePath.path, onMessage: onMessage);
   }
 
-  /// Invoked when a new message is received on this service.
-  /// Implements a callback. Must call super from every sub service.
+  /// [onMessage] callback abstract implementation.
+  /// Override and implement the handler.
   void onMessage(String message);
 
-  /// Publish a message on this service.
+  /// Publish a [message] on [this] [BakeCodeService].
   void publish(String messsage) =>
       runtime.mqtt.publishMessage(topic: servicePath.path, message: messsage);
 }
 
-/// A zone of [BakeCodeService]s to contain and manage all the tools.
+/// [ToolsCollection] is a [BakeCodeService] that handles all the associated
+/// [Tool]s in this runtime. [ToolsCollection] is a singleton service.
 @sealed
 class ToolsCollection extends BakeCodeService {
-  ToolsCollection._() : super();
+  ToolsCollection._();
 
-  /// Provides the singleton instance of [ToolsCollection].
+  /// [Tools] singleton service instance.
   static final ToolsCollection instance = ToolsCollection._();
 
-  /// returns the [ToolsCollection] singleton instance.
   factory ToolsCollection() => instance;
 
-  /// Contains all [Tool]s available at runtime.
-  static final Map<String, List<Tool>> tools = {};
+  /// A map of tool name and iall session instances.
+  /// Map<Name, Map<SessionID, Tool>.
+  static final Map<String, Map<String, Tool>> tools = {};
+
+  void toolMessage({@required Tool tool, @required String message}) {
+    tool.isOnline = true;
+
+    message = message.toLowerCase();
+  }
 
   @override
-  void onMessage(String message) {}
+  void onMessage(String message) {
+    // filter tool message and invoke toolMessage.
+  }
 
-  /// [ServicePath] to the [ToolsCollection]
+  /// [Tools]'s [ServicePath].
   @override
   ServicePath get servicePath => super.servicePath.child('tools');
 }
 
-/// Provides an abstract layer for implementing a BakeCode compatible [Tool].
+/// [Tool] abstact layer.
 abstract class Tool extends BakeCodeService {
+  bool isOnline = false;
+  bool isBusy = false;
+
   /// returns the name of the [Tool].
   String get name;
 
   /// [Tool] default constructor adds [this] to [ToolsCollection.tools].
   Tool() {
-    ToolsCollection.tools[name].add(this);
+    ToolsCollection.tools[name][sessionID] = this;
   }
 
   /// returns the current sessionID of the [Tool].
@@ -85,13 +93,11 @@ abstract class Tool extends BakeCodeService {
   /// safely handled.
   String get sessionID => hashCode.toString();
 
-  /// [ServicePath] to this tool (tools/$name/$session)
+  /// [ServicePath] to this tool instance.
   @override
   ServicePath get servicePath =>
       ToolsCollection().servicePath.child(name).child(sessionID);
 }
-
-class RecipeBuildOwner {}
 
 abstract class RecipeBuildTool {
   String get name;
@@ -113,8 +119,6 @@ abstract class BuildContext extends Loggable {
   Recipe recipe;
   Chef chef;
 
-  @override
-  // ignore: override_on_non_overriding_member
   String get label => 'BuildContext (${recipe.name})';
 }
 
@@ -140,38 +144,30 @@ class RecipeVersion {
       : assert(publishedOn != null);
 }
 
-abstract class Recipe extends Equatable {
-  final String name;
-  final RecipeVersion version;
-  Servings servings;
+abstract class Recipe {
+  String get name;
+  RecipeVersion get version;
+  Servings get servings;
 
-  Recipe({
-    @required this.name,
-    @required this.version,
-    @required this.servings,
-  })  : assert(name != null),
-        assert(version != null),
-        assert(servings != null);
-
-  @override
-  // ignore: override_on_non_overriding_member
-  String get label => 'Recipe $name';
-
-  @override
-  List<Object> get props => [name, version];
-
-  bool get canBuild => true;
-  Future build(BuildContext context);
+  Stream<ActionState> build(BuildContext context);
 }
 
-void make(Recipe recipe, [Servings servings]) {
-  recipe.servings = servings ?? recipe.servings;
+void make(Recipe recipe) {
+  recipe.build(null);
+}
 
-  if (recipe.canBuild) {
-    // reserve tools to RecipeBuildContext
+class Coffee implements Recipe {
+  @override
+  String get name => 'Coffee';
 
-    BuildContext buildContext = FoodBuildContext();
+  @override
+  RecipeVersion get version => RecipeVersion(publishedOn: DateTime.now());
 
-    recipe.build(buildContext);
+  @override
+  Servings get servings => Servings(1);
+
+  @override
+  Stream<ActionState> build(BuildContext context) async* {
+    yield Executing();
   }
 }
