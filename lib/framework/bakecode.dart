@@ -20,7 +20,7 @@ class BakeCodeRuntime {
   ServicePath get servicePath => ServicePath(['bakecode-$hashCode']);
 }
 
-/// [BakeCodeSerice] abstract layer.
+/// [BakeCodeService] abstract layer.
 abstract class BakeCodeService {
   /// [BakeCodeRuntime] service instance.
   BakeCodeRuntime get runtime => BakeCodeRuntime.instance;
@@ -42,10 +42,16 @@ abstract class BakeCodeService {
       runtime.mqtt.publishMessage(topic: servicePath.path, message: messsage);
 }
 
+/// A collection group of [BakeCodeService]s as a [BakeCodeService].
+abstract class BakeCodeServiceCollection<T> extends BakeCodeService {
+  /// All the sub-services in [this] collection.
+  final List<T> services = [];
+}
+
 /// [ToolsCollection] is a [BakeCodeService] that handles all the associated
 /// [Tool]s in this runtime. [ToolsCollection] is a singleton service.
 @sealed
-class ToolsCollection extends BakeCodeService {
+class ToolsCollection extends BakeCodeServiceCollection<Tool> {
   ToolsCollection._();
 
   /// [Tools] singleton service instance.
@@ -53,9 +59,8 @@ class ToolsCollection extends BakeCodeService {
 
   factory ToolsCollection() => instance;
 
-  /// A map of tool name and iall session instances.
-  /// Map<Name, Map<SessionID, Tool>.
-  static final Map<String, Map<String, Tool>> tools = {};
+  /// All tools in [this] runtime.
+  List<Tool> get tools => super.services;
 
   void toolMessage({@required Tool tool, @required String message}) {
     tool.isOnline = true;
@@ -83,7 +88,7 @@ abstract class Tool extends BakeCodeService {
 
   /// [Tool] default constructor adds [this] to [ToolsCollection.tools].
   Tool() {
-    ToolsCollection.tools[name][sessionID] = this;
+    ToolsCollection.instance.tools.add(this);
   }
 
   /// returns the current sessionID of the [Tool].
