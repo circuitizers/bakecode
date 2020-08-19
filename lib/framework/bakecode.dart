@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:bakecode/framework/action_state.dart';
-import 'package:bakecode/framework/logger.dart';
 import 'package:bakecode/framework/mqtt.dart';
 import 'package:bakecode/framework/quantities.dart';
 import 'package:bakecode/framework/service.dart';
@@ -62,16 +61,8 @@ class ToolsCollection extends BakeCodeServiceCollection<Tool> {
   /// All tools in [this] runtime.
   List<Tool> get tools => super.services;
 
-  void toolMessage({@required Tool tool, @required String message}) {
-    tool.isOnline = true;
-
-    message = message.toLowerCase();
-  }
-
   @override
-  void onMessage(String message) {
-    // filter tool message and invoke toolMessage.
-  }
+  void onMessage(String message) {} // TODO: onMessage implementation pending.
 
   /// [Tools]'s [ServicePath].
   @override
@@ -92,10 +83,7 @@ abstract class Tool extends BakeCodeService {
   }
 
   /// returns the current sessionID of the [Tool].
-  ///
   /// [sessionID] relies on the object's [hashCode].
-  /// Hence, [hashCode] should not be overriden by sub-classes, unless
-  /// safely handled.
   String get sessionID => hashCode.toString();
 
   /// [ServicePath] to this tool instance.
@@ -104,75 +92,62 @@ abstract class Tool extends BakeCodeService {
       ToolsCollection().servicePath.child(name).child(sessionID);
 }
 
-abstract class RecipeBuildTool {
-  String get name;
-
-  bool get available => true;
-}
-
-/// [Chef] is responsible for managing and handling the build pipeline of a
-/// recipe.
-class Chef {
-  /// Initializes the chef
-  void init() {}
-
-  Future make(Recipe recipe, {Servings servings}) =>
-      make(recipe, servings: servings);
-}
-
-abstract class BuildContext extends Loggable {
-  Recipe recipe;
-  Chef chef;
-
-  String get label => 'BuildContext (${recipe.name})';
-}
-
-class FoodBuildContext extends BuildContext {
-  @override
-  Recipe recipe;
-
-  @override
-  Chef chef;
-
-  FoodBuildContext({this.recipe, this.chef});
-
-  DateTime buildStartDateTime;
-  DateTime buildCompleteDateTime;
-  DateTime expiryDateTime;
-}
-
-@immutable
-class RecipeVersion {
-  final DateTime publishedOn;
-
-  const RecipeVersion({@required this.publishedOn})
-      : assert(publishedOn != null);
-}
-
 abstract class Recipe {
   String get name;
-  RecipeVersion get version;
   Servings get servings;
 
-  Stream<ActionState> build(BuildContext context);
+  Stream<ActionState> make();
 }
+
+abstract class Beverage extends Recipe {}
+
+abstract class Food extends Recipe {}
 
 void make(Recipe recipe) {
-  recipe.build(null);
+  recipe.make();
 }
 
-class Coffee implements Recipe {
-  @override
-  String get name => 'Coffee';
+// abstract class RecipeBuildTool {
+//   String get name;
 
-  @override
-  RecipeVersion get version => RecipeVersion(publishedOn: DateTime.now());
+//   bool get available => true;
+// }
 
-  @override
-  Servings get servings => Servings(1);
+// /// [Chef] is responsible for managing and handling the build pipeline of a
+// /// recipe.
+// class Chef {
+//   /// Initializes the chef
+//   void init() {}
 
-  @override
-  Stream<ActionState> build(BuildContext context) async* {
-    yield Executing();
-  }
-}
+//   Future make(Recipe recipe, {Servings servings}) =>
+//       make(recipe, servings: servings);
+// }
+
+// abstract class BuildContext extends Loggable {
+//   Recipe recipe;
+//   Chef chef;
+
+//   String get label => 'BuildContext (${recipe.name})';
+// }
+
+// class FoodBuildContext extends BuildContext {
+//   @override
+//   Recipe recipe;
+
+//   @override
+//   Chef chef;
+
+//   FoodBuildContext({this.recipe, this.chef});
+
+//   DateTime buildStartDateTime;
+//   DateTime buildCompleteDateTime;
+//   DateTime expiryDateTime;
+// }
+
+// @immutable
+// class RecipeVersion {
+//   final DateTime publishedOn;
+
+//   const RecipeVersion({@required this.publishedOn})
+//       : assert(publishedOn != null);
+// }

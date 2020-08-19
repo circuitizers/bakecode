@@ -1,7 +1,7 @@
 name: bakecode
 description: A sample command-line application.
 version: 0.0.1+2
-homepage: https://github.com/circuitizers/bakecode
+homepage: https://github.com/crysalisdevs/bakecode
 
 environment:
   sdk: '>=2.8.1 <3.0.0'

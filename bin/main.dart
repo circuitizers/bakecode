@@ -1,13 +1,5 @@
 import 'package:bakecode/framework/bakecode.dart';
 
-void main(List<String> args) {
-  make(null);
-}
+import 'mycoffee.dart';
 
-class Coffee extends Recipe {
-  @override
-  // TODO: implement name
-  String get name => 'Coffee';
-
-  servings
-}
+void main() => make(MyCoffee());
