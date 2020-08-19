@@ -10,7 +10,7 @@ class Executing implements ActionState {
       : assert(current != null),
         assert(of != null);
 
-  double get percentage => of == 0 ? null : (100 * current / of);
+  double get percentage => of == 0 ? 0 : (100 * current / of);
 
   @override
   String toString() => 'ActionState::Executing [$current of $of]';

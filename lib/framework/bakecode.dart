@@ -92,19 +92,56 @@ abstract class Tool extends BakeCodeService {
       ToolsCollection().servicePath.child(name).child(sessionID);
 }
 
+@immutable
+class Action {
+
+  /// The action to be performed.
+  final Function perform;
+
+  Action(this.perform);
+}
+
+class Parallel extends Action {
+
+  final List<Action> actions;
+
+  Parallel({
+    @required this.actions
+  }) : super(() => actions.forEach((action) => action.perform()));
+
+}
+
 abstract class Recipe {
   String get name;
   Servings get servings;
 
-  Stream<ActionState> make();
+  Duration get bestBefore;
+
+  RecipeState createState() => 
 }
 
 abstract class Beverage extends Recipe {}
 
 abstract class Food extends Recipe {}
 
+abstract class RecipeState<T extends Recipe> {
+  Duration makeDuration;
+  DateTime makeDateTime;
+  Servings makeServings;
+  DateTime makeExpiryDateTime;
+
+  @mustCallSuper
+  Stream<ActionState> make() async* {
+    yield Executing();
+  }
+}
+
 void make(Recipe recipe) {
   recipe.make();
+}
+
+void run() {
+  // TODO: start bakecode service.
 }
 
 // abstract class RecipeBuildTool {

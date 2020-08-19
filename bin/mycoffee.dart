@@ -10,6 +10,9 @@ class MyCoffee extends Beverage {
   @override
   Servings get servings => Servings(1);
 
+  @override
+  Duration get bestBefore => Duration(days: 1);
+
   /// =========================================================================
   ///
   /// Assume the following [Dispenser], [Mixer] and [Oven] are inherited from
