@@ -24,7 +24,7 @@ class Completed implements ActionState {
 }
 
 class CompletedWithException extends Completed {
-  final Exception exception;
+  final List<Exception> exception;
 
   const CompletedWithException(this.exception);
 

@@ -94,21 +94,37 @@ abstract class Tool extends BakeCodeService {
 
 @immutable
 class Action {
-
   /// The action to be performed.
-  final Function perform;
+  final Stream<ActionState> Function() perform;
 
   Action(this.perform);
 }
 
 class Parallel extends Action {
-
   final List<Action> actions;
 
-  Parallel({
-    @required this.actions
-  }) : super(() => actions.forEach((action) => action.perform()));
+  Parallel({@required this.actions})
+      : super(() async* {
+          yield Executing();
 
+          List<Exception> exceptions;
+
+          for (var i = 0; i < actions.length; ++i) {
+            actions[i].perform().listen(
+              (state) {
+                if (state is CompletedWithException) {
+                  exceptions.addAll(state.exception);
+                }
+              },
+            );
+
+            yield Executing(current: i, of: actions.length);
+          }
+
+          yield exceptions.isEmpty
+              ? Completed()
+              : CompletedWithException(exceptions);
+        });
 }
 
 abstract class Recipe {
@@ -116,8 +132,6 @@ abstract class Recipe {
   Servings get servings;
 
   Duration get bestBefore;
-
-  RecipeState createState() => 
 }
 
 abstract class Beverage extends Recipe {}
@@ -137,7 +151,7 @@ abstract class RecipeState<T extends Recipe> {
 }
 
 void make(Recipe recipe) {
-  recipe.make();
+  // recipe.make();
 }
 
 void run() {
