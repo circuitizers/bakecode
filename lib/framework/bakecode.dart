@@ -93,17 +93,17 @@ abstract class Tool extends BakeCodeService {
 }
 
 @immutable
-class Action {
+class Action<T> {
   /// The action to be performed.
-  final Stream<ActionState> Function() perform;
+  final Stream<ActionState<T>> Function() perform;
 
   Action(this.perform);
 }
 
-class Parallel extends Action {
+class ParallelAction extends Action {
   final List<Action> actions;
 
-  Parallel({@required this.actions})
+  ParallelAction({@required this.actions, bool cancelOnError = false})
       : super(() async* {
           yield Executing();
 
@@ -116,6 +116,8 @@ class Parallel extends Action {
                   exceptions.addAll(state.exception);
                 }
               },
+              onError: () => exceptions.add(Exception()),
+              cancelOnError: cancelOnError,
             );
 
             yield Executing(current: i, of: actions.length);

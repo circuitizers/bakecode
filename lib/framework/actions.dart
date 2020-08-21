@@ -1,5 +1,4 @@
 import 'package:bakecode/framework/action_state.dart';
-import 'package:equatable/equatable.dart';
 import 'package:meta/meta.dart';
 
 Map<String, Action> _actions = {};
@@ -21,13 +20,13 @@ void addAction({
   if (_actions.containsKey(name)) _actions[name] = action;
 }
 
-abstract class Action extends Equatable {
+abstract class Action {
   /// Name of the action.
   String get name;
 
-  /// Performs the action.
-  Stream<ActionState> perform();
+  /// Creates a new [ActionContext] for [this] [Action].
+  ActionContext createContext() => ActionContext(this);
 
-  @override
-  List<Object> get props => [name];
+  /// Performs the action.
+  Stream<ActionState> perform({ActionContext context});
 }
