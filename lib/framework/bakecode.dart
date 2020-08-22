@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:bakecode/framework/action_state.dart';
+import 'package:bakecode/framework/actions.dart';
 import 'package:bakecode/framework/mqtt.dart';
 import 'package:bakecode/framework/quantities.dart';
 import 'package:bakecode/framework/service.dart';
@@ -90,43 +90,6 @@ abstract class Tool extends BakeCodeService {
   @override
   ServicePath get servicePath =>
       ToolsCollection().servicePath.child(name).child(sessionID);
-}
-
-@immutable
-class Action<T> {
-  /// The action to be performed.
-  final Stream<ActionState<T>> Function() perform;
-
-  Action(this.perform);
-}
-
-class ParallelAction extends Action {
-  final List<Action> actions;
-
-  ParallelAction({@required this.actions, bool cancelOnError = false})
-      : super(() async* {
-          yield Executing();
-
-          List<Exception> exceptions;
-
-          for (var i = 0; i < actions.length; ++i) {
-            actions[i].perform().listen(
-              (state) {
-                if (state is CompletedWithException) {
-                  exceptions.addAll(state.exception);
-                }
-              },
-              onError: () => exceptions.add(Exception()),
-              cancelOnError: cancelOnError,
-            );
-
-            yield Executing(current: i, of: actions.length);
-          }
-
-          yield exceptions.isEmpty
-              ? Completed()
-              : CompletedWithException(exceptions);
-        });
 }
 
 abstract class Recipe {

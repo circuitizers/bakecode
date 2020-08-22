@@ -1,12 +1,63 @@
 import 'package:meta/meta.dart';
 
 /// Defines the abstract layer of [Action].
+@immutable
 abstract class Action {
+  /// [Action] cosnt constructor.
+  const Action();
+
   /// Creates a new [ActionContext] for [this] [Action].
   ActionContext createContext() => ActionContext(this);
 
   /// Perform [this] action.
   Stream<ActionState> perform({ActionContext context});
+
+  int get steps => 1;
+}
+
+abstract class MultipleActions extends Action {
+  final List<Action> actions;
+
+  const MultipleActions(this.actions);
+
+  @override
+  int get steps => () {
+        var steps = 0;
+        actions.forEach((action) => steps += action.steps);
+        return steps;
+      }();
+}
+
+class ParallelAction extends MultipleActions {
+  final bool cancelOnError;
+
+  const ParallelAction({
+    @required List<Action> actions,
+    this.cancelOnError = false,
+  }) : super(actions);
+
+  @override
+  Stream<ActionState> perform({ActionContext context}) async* {
+    yield Executing();
+
+    List<Exception> exceptions;
+
+    for (var i = 0; i < actions.length; ++i) {
+      actions[i].perform().listen(
+        (state) {
+          if (state is CompletedWithException) {
+            exceptions.addAll(state.exceptionsEncountered);
+          }
+        },
+        onError: () => exceptions.add(Exception()),
+        cancelOnError: cancelOnError,
+      );
+
+      yield Executing(current: i, of: actions.length);
+    }
+
+    yield exceptions.isEmpty ? Completed() : CompletedWithException(exceptions);
+  }
 }
 
 /// Context for an [Action].
