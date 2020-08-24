@@ -1,62 +1,100 @@
 import 'package:meta/meta.dart';
 
-/// Defines the abstract layer of [Action].
+/// Defines an [Action] for a function with return type [T].
 @immutable
-abstract class Action {
-  /// [Action] cosnt constructor.
-  const Action();
+class Action<T> {
+  /// Const constructor. This constructor enables subclasses to provide const
+  /// constructors so that they can be used in const expressions.
+  /// [T] is the return type of the [action] function.
+  const Action({
+    @required T Function(ActionContext context) action,
+  })  : assert(action != null),
+        _performAction = action;
 
   /// Creates a new [ActionContext] for [this] [Action].
+  /// Optionally pass [parentContext] if the context to be created has a parent.
   ActionContext createContext() => ActionContext(this);
 
-  /// Perform [this] action.
-  Stream<ActionState> perform({ActionContext context});
+  /// The [action] function.
+  final T Function(ActionContext context) _performAction;
 
-  int get steps => 1;
+  /// Perform the [action].
+  Stream<ActionState> perform({@required ActionContext context}) async* {
+    yield Executing(currentStep: 1, totalSteps: 1);
+    await _performAction(context);
+    yield Completed(totalSteps: 1);
+  }
 }
 
+/// Abstract layer for implementing Action groups as an [Action].
 abstract class MultipleActions extends Action {
+  /// All the [Action]s of [this] Action group.
   final List<Action> actions;
 
+  /// Abstract const constructor. This constructor enables subclasses to provide
+  /// const constructors so that they can be used in const expressions.
   const MultipleActions(this.actions);
-
-  @override
-  int get steps => () {
-        var steps = 0;
-        actions.forEach((action) => steps += action.steps);
-        return steps;
-      }();
 }
 
-class ParallelAction extends MultipleActions {
-  final bool cancelOnError;
+class SeriesActions extends MultipleActions {
+  final bool terminateOnError;
 
-  const ParallelAction({
+  /// Provides an [Action] to execute multple [Action]s in series / chain.
+  /// [bool] [terminateOnError] parameter provides option to skip execution
+  /// of rest of the [actions] on error.
+  const SeriesActions({
     @required List<Action> actions,
-    this.cancelOnError = false,
+    this.terminateOnError = false,
   }) : super(actions);
 
   @override
   Stream<ActionState> perform({ActionContext context}) async* {
-    yield Executing();
+    var steps = actions.length;
 
-    List<Exception> exceptions;
+    yield Executing(currentStep: 0, totalSteps: steps);
 
-    for (var i = 0; i < actions.length; ++i) {
-      actions[i].perform().listen(
-        (state) {
-          if (state is CompletedWithException) {
-            exceptions.addAll(state.exceptionsEncountered);
-          }
-        },
-        onError: () => exceptions.add(Exception()),
-        cancelOnError: cancelOnError,
-      );
+    for (var i = 0; i < steps; ++i) {
+      yield Executing(currentStep: i, totalSteps: steps);
 
-      yield Executing(current: i, of: actions.length);
+      var caughtError = false;
+
+      await actions.elementAt(i).perform(context: context).listen(
+            (event) {},
+            onError: () => caughtError = true,
+          );
+
+      if (terminateOnError & caughtError) break;
     }
 
-    yield exceptions.isEmpty ? Completed() : CompletedWithException(exceptions);
+    yield Completed(totalSteps: steps);
+  }
+}
+
+class ParallelActions extends MultipleActions {
+  const ParallelActions({
+    @required List<Action> actions,
+  }) : super(actions);
+
+  @override
+  Stream<ActionState> perform({ActionContext context}) async* {
+    var steps = actions.length;
+
+    yield Executing(currentStep: 0, totalSteps: steps);
+
+    for (var i = 0; i < steps; ++i) {
+      yield Executing(currentStep: i, totalSteps: steps);
+
+      var errorCaught = false;
+
+      await actions.elementAt(i).perform(context: context).listen(
+            (event) {},
+            onError: () => errorCaught = true,
+          );
+
+      if (errorCaught) break;
+    }
+
+    yield Completed(totalSteps: steps);
   }
 }
 
@@ -71,15 +109,18 @@ class ActionContext {
   /// The current [state] of [this.action].
   ActionState state = Pending();
 
+  /// Update the [state] of execution of [action].
+  // void _updateState(ActionState _state) => state = _state;
+
   /// Perform the action on [this] context.
-  void perform() => action.perform(context: this);
+  void perform() {
+    action.perform(context: this).listen((_state) => state = _state);
+  }
 }
 
 /// [ActionState] contains information of the current state of an [Action].
-///
-/// [T] is the type of the [result] to be returned after performing the action.
 @immutable
-class ActionState<T> {
+class ActionState {
   /// The current execution step position of an [Action].
   final int currentStep;
 
@@ -89,15 +130,12 @@ class ActionState<T> {
   /// All exceptions encountered while executing the steps.
   final List<Exception> exceptionsEncountered;
 
-  /// The [result] object, after executing the [Action].
-  final T result;
-
-  /// [ActionState] constructor.
+  /// Const constructor. This constructor enables subclasses to provide const
+  /// constructors so that they can be used in const expressions.
   const ActionState._({
     @required this.currentStep,
     @required this.totalSteps,
     @required this.exceptionsEncountered,
-    @required this.result,
   });
 
   /// To define when an [Action] is pending to be executed.
@@ -125,13 +163,11 @@ class ActionState<T> {
     int currentStep,
     @required int totalSteps,
     List<Exception> exceptions,
-    T result,
   }) =>
       Completed(
         currentStep: currentStep ?? totalSteps,
         totalSteps: totalSteps,
         exceptions: exceptions,
-        result: result,
       );
 
   /// To define when an [Action] has completed execution and has encountered
@@ -143,13 +179,11 @@ class ActionState<T> {
     int currentStep,
     @required int totalSteps,
     @required List<Exception> exceptions,
-    T result,
   }) =>
       CompletedWithException(
         currentStep: currentStep ?? totalSteps,
         totalSteps: totalSteps,
         exceptions: exceptions,
-        result: result,
       );
 
   /// To define when an [Action] failed to complete execution.
@@ -157,25 +191,24 @@ class ActionState<T> {
     @required int currentStep,
     @required int totalSteps,
     @required List<Exception> exceptions,
-    T result,
   }) =>
       Failed(
         currentStep: currentStep,
         totalSteps: totalSteps,
         exceptions: exceptions,
-        result: result,
       );
 }
 
 /// To define when an [Action] is pending to be executed.
-class Pending<T> extends ActionState<T> {
+class Pending extends ActionState {
+  /// Const constructor. This constructor enables subclasses to provide const
+  /// constructors so that they can be used in const expressions.
   const Pending({
     int steps,
   }) : super._(
           currentStep: 0,
           totalSteps: steps,
           exceptionsEncountered: null,
-          result: null,
         );
 
   @override
@@ -183,7 +216,9 @@ class Pending<T> extends ActionState<T> {
 }
 
 /// To define when an [Action] is currently being executed.
-class Executing<T> extends ActionState<T> {
+class Executing extends ActionState {
+  /// Const constructor. This constructor enables subclasses to provide const
+  /// constructors so that they can be used in const expressions.
   const Executing({
     @required int currentStep,
     @required int totalSteps,
@@ -194,7 +229,6 @@ class Executing<T> extends ActionState<T> {
           currentStep: currentStep,
           totalSteps: totalSteps,
           exceptionsEncountered: exceptions,
-          result: null,
         );
 
   @override
@@ -207,17 +241,17 @@ class Executing<T> extends ActionState<T> {
 /// If one or more [Exception] has been encountered while executing, use
 /// [CompletedWithExceptions] or [ActionState.completedWithExceptions]
 /// to define the [ActionState].
-class Completed<T> extends ActionState<T> {
+class Completed extends ActionState {
+  /// Const constructor. This constructor enables subclasses to provide const
+  /// constructors so that they can be used in const expressions.
   const Completed({
     int currentStep,
     @required int totalSteps,
     List<Exception> exceptions,
-    T result,
   }) : super._(
           currentStep: currentStep ?? totalSteps,
           totalSteps: totalSteps,
           exceptionsEncountered: exceptions,
-          result: result,
         );
 
   @override
@@ -229,17 +263,17 @@ class Completed<T> extends ActionState<T> {
 ///
 /// If [Action] couldn't complete execution, use [Failed] or
 /// [ActionState.failed] to define the [ActionState].
-class CompletedWithException<T> extends Completed<T> {
+class CompletedWithException extends Completed {
+  /// Const constructor. This constructor enables subclasses to provide const
+  /// constructors so that they can be used in const expressions.
   const CompletedWithException({
     int currentStep,
     @required int totalSteps,
     @required List<Exception> exceptions,
-    T result,
   }) : super(
           currentStep: currentStep ?? totalSteps,
           totalSteps: totalSteps,
           exceptions: exceptions,
-          result: result,
         );
 
   @override
@@ -248,17 +282,17 @@ class CompletedWithException<T> extends Completed<T> {
 }
 
 /// To define when an [Action] failed to complete execution.
-class Failed<T> extends ActionState<T> {
+class Failed extends ActionState {
+  /// Const constructor. This constructor enables subclasses to provide const
+  /// constructors so that they can be used in const expressions.
   const Failed({
     @required int currentStep,
     @required int totalSteps,
     @required List<Exception> exceptions,
-    T result,
   }) : super._(
           currentStep: currentStep,
           totalSteps: totalSteps,
           exceptionsEncountered: exceptions,
-          result: result,
         );
 
   @override
