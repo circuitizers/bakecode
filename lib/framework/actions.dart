@@ -127,15 +127,11 @@ class ActionState {
   /// Total number of steps to be executed by the [Action].
   final int totalSteps;
 
-  /// All exceptions encountered while executing the steps.
-  final List<Exception> exceptionsEncountered;
-
   /// Const constructor. This constructor enables subclasses to provide const
   /// constructors so that they can be used in const expressions.
   const ActionState._({
     @required this.currentStep,
     @required this.totalSteps,
-    @required this.exceptionsEncountered,
   });
 
   /// To define when an [Action] is pending to be executed.
@@ -145,12 +141,10 @@ class ActionState {
   factory ActionState.executing({
     @required int currentStep,
     @required int totalSteps,
-    List<Exception> exceptions,
   }) =>
       Executing(
         currentStep: currentStep,
         totalSteps: totalSteps,
-        exceptions: exceptions,
       );
 
   /// To define when an [Action] has succesfully executed without encountering
@@ -162,12 +156,10 @@ class ActionState {
   factory ActionState.completed({
     int currentStep,
     @required int totalSteps,
-    List<Exception> exceptions,
   }) =>
       Completed(
         currentStep: currentStep ?? totalSteps,
         totalSteps: totalSteps,
-        exceptions: exceptions,
       );
 
   /// To define when an [Action] has completed execution and has encountered
@@ -178,24 +170,20 @@ class ActionState {
   factory ActionState.completedWithExceptions({
     int currentStep,
     @required int totalSteps,
-    @required List<Exception> exceptions,
   }) =>
       CompletedWithException(
         currentStep: currentStep ?? totalSteps,
         totalSteps: totalSteps,
-        exceptions: exceptions,
       );
 
   /// To define when an [Action] failed to complete execution.
   factory ActionState.failed({
     @required int currentStep,
     @required int totalSteps,
-    @required List<Exception> exceptions,
   }) =>
       Failed(
         currentStep: currentStep,
         totalSteps: totalSteps,
-        exceptions: exceptions,
       );
 }
 
@@ -208,7 +196,6 @@ class Pending extends ActionState {
   }) : super._(
           currentStep: 0,
           totalSteps: steps,
-          exceptionsEncountered: null,
         );
 
   @override
@@ -222,13 +209,11 @@ class Executing extends ActionState {
   const Executing({
     @required int currentStep,
     @required int totalSteps,
-    List<Exception> exceptions,
   })  : assert(currentStep != null),
         assert(totalSteps != null),
         super._(
           currentStep: currentStep,
           totalSteps: totalSteps,
-          exceptionsEncountered: exceptions,
         );
 
   @override
@@ -241,17 +226,18 @@ class Executing extends ActionState {
 /// If one or more [Exception] has been encountered while executing, use
 /// [CompletedWithExceptions] or [ActionState.completedWithExceptions]
 /// to define the [ActionState].
-class Completed extends ActionState {
+class Completed<T> extends ActionState {
+  final T result;
+
   /// Const constructor. This constructor enables subclasses to provide const
   /// constructors so that they can be used in const expressions.
   const Completed({
     int currentStep,
     @required int totalSteps,
-    List<Exception> exceptions,
+    this.result,
   }) : super._(
           currentStep: currentStep ?? totalSteps,
           totalSteps: totalSteps,
-          exceptionsEncountered: exceptions,
         );
 
   @override
@@ -263,22 +249,25 @@ class Completed extends ActionState {
 ///
 /// If [Action] couldn't complete execution, use [Failed] or
 /// [ActionState.failed] to define the [ActionState].
-class CompletedWithException extends Completed {
+class CompletedWithException<T> extends Completed<T> {
+  /// Exception encountered when performing the action.
+  final Exception exception;
+
   /// Const constructor. This constructor enables subclasses to provide const
   /// constructors so that they can be used in const expressions.
   const CompletedWithException({
     int currentStep,
     @required int totalSteps,
-    @required List<Exception> exceptions,
+    @required this.exception,
+    T result,
   }) : super(
           currentStep: currentStep ?? totalSteps,
           totalSteps: totalSteps,
-          exceptions: exceptions,
+          result: result,
         );
 
   @override
-  String toString() =>
-      'Completed w/ ${exceptionsEncountered.length} exceptions.';
+  String toString() => 'Completed w/ an exception.';
 }
 
 /// To define when an [Action] failed to complete execution.
@@ -288,11 +277,9 @@ class Failed extends ActionState {
   const Failed({
     @required int currentStep,
     @required int totalSteps,
-    @required List<Exception> exceptions,
   }) : super._(
           currentStep: currentStep,
           totalSteps: totalSteps,
-          exceptionsEncountered: exceptions,
         );
 
   @override
