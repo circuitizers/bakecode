@@ -1,5 +1,4 @@
 import 'package:meta/meta.dart';
-import 'package:path/path.dart';
 
 /// Defines an [Action] for a function with return type [T].
 @immutable
