@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import 'package:path/path.dart';
 
 /// Defines an [Action] for a function with return type [T].
 @immutable
@@ -8,16 +9,22 @@ class Action {
   const Action(this.computation) : assert(computation != null);
 
   /// Creates a new [ActionContext] for [this] [Action].
-  ActionContext createContext() => ActionContext(this);
+  ActionContext createContext(ActionContext parent) =>
+      ActionContext(this, parent: parent);
 
   /// The [computation] function to be performed.
   final Function(ActionContext context) computation;
 
   /// Perform the [action].
-  void perform(ActionContext context) async {
-    context = createContext();
+  Future perform(ActionContext context) async {
+    /// Creates a child context from the passed parent action's context.
+    context = createContext(context);
+
     context.state = Executing(currentStep: 1, totalSteps: 1);
+
+    /// Performs the computation.
     await computation(context);
+
     context.state = Completed(totalSteps: 1);
   }
 }
@@ -31,44 +38,46 @@ abstract class MultipleActions extends Action {
   /// const constructors so that they can be used in const expressions.
   /// [actions] is an [Iterable<Action>] containing all the actions to be
   /// performed by the [actionHandler].
-  const MultipleActions(
-    this.actions,
-    void Function(ActionContext context) actionHandler,
-  ) : super(actionHandler);
+  const MultipleActions(this.actions) : super(null);
 }
 
 class SeriesActions extends MultipleActions {
-  /// Provides an [Action] to execute multple [Action]s in series / chain.
-  const SeriesActions({@required List<Action> actions}) : super(actions);
+  /// Provides an [Action] to execute multple [Action]s in series.
+  SeriesActions({@required List<Action> actions}) : super(actions);
 
   @override
-  Stream<ActionState> perform(ActionContext context) async* {
-    yield Executing(currentStep: 0, totalSteps: actions.length);
+  Future perform(ActionContext context) async {
+    context = createContext(context);
 
     for (var i = 0; i < actions.length; ++i) {
-      yield Executing(currentStep: i + 1, totalSteps: actions.length);
+      context.state = Executing(currentStep: i, totalSteps: actions.length);
       await actions.elementAt(i).perform(context);
     }
 
-    yield Completed(totalSteps: actions.length);
+    context.state = Completed(totalSteps: actions.length);
   }
 }
 
 class ParallelActions extends MultipleActions {
-  const ParallelActions({
-    @required List<Action> actions,
-  }) : super(actions);
+  /// Provides an [Action] to execute multple [Action]s in parallel.
+  const ParallelActions({@required List<Action> actions}) : super(actions);
 
   @override
-  Stream<ActionState> perform(ActionContext context) async* {
-    var completed = 0;
+  Future perform(ActionContext context) async {
+    context = createContext(context);
 
-    yield Executing(currentStep: completed, totalSteps: actions.length);
+    await Future.wait([
+      for (var i = 0; i < actions.length; ++i)
+        actions
+            .elementAt(i)
+            .perform(context)
+            .then((_) => context.state = Executing(
+                  currentStep: context.state.currentStep + 1,
+                  totalSteps: actions.length,
+                ))
+    ]);
 
-    actions.forEach((action) =>
-        action.perform(context).listen(null, onDone: () => completed++));
-
-    yield Completed(totalSteps: actions.length);
+    context.state = Completed(totalSteps: actions.length);
   }
 }
 
@@ -77,17 +86,17 @@ class ActionContext {
   /// The [Action] of [this] [ActionContext].
   final Action action;
 
+  /// [ActionContext] of the parent of [action].
+  final ActionContext parent;
+
   /// Creates a new [ActionContext] instance for an [Action].
-  ActionContext(this.action);
+  ActionContext(this.action, {this.parent});
 
   /// The current [state] of [this.action].
   ActionState state = Pending();
 
-  /// Update the [state] of execution of [action].
-  // void _updateState(ActionState _state) => state = _state;
-
   /// Perform the action on [this] context.
-  void perform() => action.perform(this).listen((_state) => state = _state);
+  void perform() => action.perform(this);
 }
 
 /// [ActionState] contains information of the current state of an [Action].
