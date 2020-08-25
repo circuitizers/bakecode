@@ -3,6 +3,7 @@ import 'package:bakecode/framework/actions.dart';
 import 'package:bakecode/framework/mqtt.dart';
 import 'package:bakecode/framework/quantities.dart';
 import 'package:bakecode/framework/service.dart';
+import 'package:get_it/get_it.dart';
 import 'package:meta/meta.dart';
 
 /// [BakeCodeRuntime] singleton service.
@@ -14,6 +15,9 @@ class BakeCodeRuntime {
 
   /// [MqttRuntime] service instance.
   final mqtt = MqttRuntime.instance;
+
+  /// [GetIt] service instance.
+  final getIt = GetIt.instance;
 
   /// [BakeCodeRuntime]'s [ServicePath].
   ServicePath get servicePath => ServicePath(['bakecode-$hashCode']);

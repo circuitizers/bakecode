@@ -18,7 +18,7 @@ class NoSuchStepDefined implements Exception {
 }
 
 class YamlParser {
-  bool parser(String yaml) {
+  bool parse(String yaml) {
     Map getFromYaml = loadYaml(yaml);
     for (var index = 1; index < getFromYaml.length + 1; index++) {
       // not case sensitive
@@ -50,8 +50,8 @@ void test_yaml() {
   step 2: turn on dispenser CHOCOLATE2
   step 3: stir cup 0 0
   ''';
-  var y = YamlParser();
-  y.parser(yaml);
+
+  YamlParser().parse(yaml);
 }
 
 void main() {

@@ -2,27 +2,23 @@ import 'package:meta/meta.dart';
 
 /// Defines an [Action] for a function with return type [T].
 @immutable
-class Action<T> {
+class Action {
   /// Const constructor. This constructor enables subclasses to provide const
   /// constructors so that they can be used in const expressions.
-  /// [T] is the return type of the [action] function.
-  const Action({
-    @required T Function(ActionContext context) action,
-  })  : assert(action != null),
-        _performAction = action;
+  const Action(this.computation) : assert(computation != null);
 
   /// Creates a new [ActionContext] for [this] [Action].
-  /// Optionally pass [parentContext] if the context to be created has a parent.
   ActionContext createContext() => ActionContext(this);
 
-  /// The [action] function.
-  final T Function(ActionContext context) _performAction;
+  /// The [computation] function to be performed.
+  final Function(ActionContext context) computation;
 
   /// Perform the [action].
-  Stream<ActionState> perform({@required ActionContext context}) async* {
-    yield Executing(currentStep: 1, totalSteps: 1);
-    await _performAction(context);
-    yield Completed(totalSteps: 1);
+  void perform(ActionContext context) async {
+    context = createContext();
+    context.state = Executing(currentStep: 1, totalSteps: 1);
+    await computation(context);
+    context.state = Completed(totalSteps: 1);
   }
 }
 
@@ -33,40 +29,28 @@ abstract class MultipleActions extends Action {
 
   /// Abstract const constructor. This constructor enables subclasses to provide
   /// const constructors so that they can be used in const expressions.
-  const MultipleActions(this.actions);
+  /// [actions] is an [Iterable<Action>] containing all the actions to be
+  /// performed by the [actionHandler].
+  const MultipleActions(
+    this.actions,
+    void Function(ActionContext context) actionHandler,
+  ) : super(actionHandler);
 }
 
 class SeriesActions extends MultipleActions {
-  final bool terminateOnError;
-
   /// Provides an [Action] to execute multple [Action]s in series / chain.
-  /// [bool] [terminateOnError] parameter provides option to skip execution
-  /// of rest of the [actions] on error.
-  const SeriesActions({
-    @required List<Action> actions,
-    this.terminateOnError = false,
-  }) : super(actions);
+  const SeriesActions({@required List<Action> actions}) : super(actions);
 
   @override
-  Stream<ActionState> perform({ActionContext context}) async* {
-    var steps = actions.length;
+  Stream<ActionState> perform(ActionContext context) async* {
+    yield Executing(currentStep: 0, totalSteps: actions.length);
 
-    yield Executing(currentStep: 0, totalSteps: steps);
-
-    for (var i = 0; i < steps; ++i) {
-      yield Executing(currentStep: i, totalSteps: steps);
-
-      var caughtError = false;
-
-      await actions.elementAt(i).perform(context: context).listen(
-            (event) {},
-            onError: () => caughtError = true,
-          );
-
-      if (terminateOnError & caughtError) break;
+    for (var i = 0; i < actions.length; ++i) {
+      yield Executing(currentStep: i + 1, totalSteps: actions.length);
+      await actions.elementAt(i).perform(context);
     }
 
-    yield Completed(totalSteps: steps);
+    yield Completed(totalSteps: actions.length);
   }
 }
 
@@ -76,25 +60,15 @@ class ParallelActions extends MultipleActions {
   }) : super(actions);
 
   @override
-  Stream<ActionState> perform({ActionContext context}) async* {
-    var steps = actions.length;
+  Stream<ActionState> perform(ActionContext context) async* {
+    var completed = 0;
 
-    yield Executing(currentStep: 0, totalSteps: steps);
+    yield Executing(currentStep: completed, totalSteps: actions.length);
 
-    for (var i = 0; i < steps; ++i) {
-      yield Executing(currentStep: i, totalSteps: steps);
+    actions.forEach((action) =>
+        action.perform(context).listen(null, onDone: () => completed++));
 
-      var errorCaught = false;
-
-      await actions.elementAt(i).perform(context: context).listen(
-            (event) {},
-            onError: () => errorCaught = true,
-          );
-
-      if (errorCaught) break;
-    }
-
-    yield Completed(totalSteps: steps);
+    yield Completed(totalSteps: actions.length);
   }
 }
 
@@ -113,9 +87,7 @@ class ActionContext {
   // void _updateState(ActionState _state) => state = _state;
 
   /// Perform the action on [this] context.
-  void perform() {
-    action.perform(context: this).listen((_state) => state = _state);
-  }
+  void perform() => action.perform(this).listen((_state) => state = _state);
 }
 
 /// [ActionState] contains information of the current state of an [Action].
