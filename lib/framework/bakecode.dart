@@ -1,10 +1,13 @@
-import 'dart:async';
 import 'package:bakecode/framework/actions.dart';
 import 'package:bakecode/framework/mqtt.dart';
 import 'package:bakecode/framework/quantities.dart';
 import 'package:bakecode/framework/service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:meta/meta.dart';
+
+export 'package:bakecode/framework/service.dart';
+export 'package:bakecode/framework/quantities.dart';
+export 'package:bakecode/framework/actions.dart';
 
 /// [BakeCodeRuntime] singleton service.
 class BakeCodeRuntime {
@@ -101,6 +104,8 @@ abstract class Recipe {
   Servings get servings;
 
   Duration get bestBefore;
+
+  Action make();
 }
 
 abstract class Beverage extends Recipe {}
@@ -112,11 +117,6 @@ abstract class RecipeState<T extends Recipe> {
   DateTime makeDateTime;
   Servings makeServings;
   DateTime makeExpiryDateTime;
-
-  @mustCallSuper
-  Stream<ActionState> make() async* {
-    yield Executing();
-  }
 }
 
 void make(Recipe recipe) {

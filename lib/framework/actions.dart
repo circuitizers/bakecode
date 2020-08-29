@@ -2,7 +2,7 @@ import 'package:meta/meta.dart';
 
 /// Defines an [Action] for a function with return type [T].
 @immutable
-class Action {
+class Action<T> {
   /// Const constructor. This constructor enables subclasses to provide const
   /// constructors so that they can be used in const expressions.
   const Action(this.computation) : assert(computation != null);
@@ -12,19 +12,21 @@ class Action {
       ActionContext(this, parent: parent);
 
   /// The [computation] function to be performed.
-  final Function(ActionContext context) computation;
+  final T Function(ActionContext context) computation;
 
   /// Perform the [action].
-  Future perform(ActionContext context) async {
+  Future<T> perform(ActionContext context) async {
     /// Creates a child context from the passed parent action's context.
     context = createContext(context);
 
     context.state = Executing(currentStep: 1, totalSteps: 1);
 
     /// Performs the computation.
-    await computation(context);
+    var result = await computation(context);
 
     context.state = Completed(totalSteps: 1);
+
+    return result;
   }
 }
 
